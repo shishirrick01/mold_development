@@ -1,1 +1,434 @@
 # mold_development
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mold Master v6.0 (Ultimate Engineer)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f1f5f9; font-family: 'Segoe UI', sans-serif; color: #1e293b; }
+        .input-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 2px; }
+        .tab-btn { padding: 10px 20px; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent; }
+        .tab-btn.active { border-bottom: 3px solid #2563eb; color: #2563eb; background: white; }
+        .spec-val { font-family: 'Roboto Mono', monospace; font-weight: 700; color: #0f172a; }
+        .bom-table th { background: #e2e8f0; text-align: left; padding: 8px; font-size: 0.85rem; }
+        .bom-table td { border-bottom: 1px solid #e2e8f0; padding: 8px; font-size: 0.9rem; }
+        .machinist-val { font-family: 'Consolas', monospace; color: #d97706; font-weight: bold; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded"><i class="fa-solid fa-industry text-xl"></i></div>
+                <div>
+                    <h1 class="text-lg font-bold">Mold<span class="text-blue-400">Master</span> v6.0</h1>
+                    <p class="text-[10px] text-slate-400 uppercase">Factory Edition</p>
+                </div>
+            </div>
+            <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-xs border border-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> Print Report
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 flex-grow">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- INPUTS -->
+            <div class="lg:col-span-3 space-y-4">
+                <form id="moldForm" onsubmit="calculateAll(event)" class="bg-white p-5 rounded shadow-sm border border-slate-200 sticky top-24">
+                    
+                    <h2 class="text-sm font-bold border-b pb-2 mb-3"><i class="fa-solid fa-cube text-blue-600 mr-2"></i>Part & Material</h2>
+                    <div class="space-y-3 mb-6">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="input-label">Length</label><input type="number" id="partL" required class="w-full text-sm border rounded p-1.5 bg-slate-50" placeholder="mm"></div>
+                            <div><label class="input-label">Width</label><input type="number" id="partW" required class="w-full text-sm border rounded p-1.5 bg-slate-50" placeholder="mm"></div>
+                            <div><label class="input-label">Height</label><input type="number" id="partH" required class="w-full text-sm border rounded p-1.5 bg-slate-50" placeholder="mm"></div>
+                            <div><label class="input-label">Wall T</label><input type="number" id="wallT" value="2.0" step="0.1" class="w-full text-sm border rounded p-1.5 bg-slate-50"></div>
+                        </div>
+                        <div>
+                            <label class="input-label">Material</label>
+                            <select id="material" class="w-full text-sm border rounded p-1.5">
+                                <option value="PP">PP (Polyprop)</option>
+                                <option value="ABS">ABS</option>
+                                <option value="PC">PC (Polycarb)</option>
+                                <option value="PA66">Nylon 66</option>
+                                <option value="HDPE">HDPE</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="input-label">Cavities</label><input type="number" id="cavities" value="1" class="w-full text-sm border rounded p-1.5"></div>
+                            <div><label class="input-label">Steel Price</label><input type="number" id="steelPrice" value="220" class="w-full text-sm border rounded p-1.5" placeholder="Tk/kg"></div>
+                        </div>
+                    </div>
+
+                    <h2 class="text-sm font-bold border-b pb-2 mb-3"><i class="fa-solid fa-bezier-curve text-orange-600 mr-2"></i>System Config</h2>
+                    <div class="space-y-3 mb-6">
+                        <div>
+                            <label class="input-label">Runner System</label>
+                            <select id="runnerType" class="w-full text-sm border rounded p-1.5">
+                                <option value="cold">Cold Runner (Standard)</option>
+                                <option value="hot">Hot Runner (Manifold)</option>
+                                <option value="semi">Semi-Hot Runner</option>
+                                <option value="valve">Valve Gate (Shut-off)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="input-label">Gate Type</label>
+                            <select id="gateType" class="w-full text-sm border rounded p-1.5">
+                                <option value="edge">Edge Gate</option>
+                                <option value="sub">Submarine (Tunnel)</option>
+                                <option value="pin">Pin-Point (3-Plate)</option>
+                                <option value="fan">Fan Gate</option>
+                                <option value="sprue">Direct Sprue</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="input-label">Machine Nozzle Dia</label>
+                            <input type="number" id="nozzleDia" value="4.0" step="0.5" class="w-full text-sm border rounded p-1.5">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded shadow uppercase text-sm flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Calculate All
+                    </button>
+                </form>
+            </div>
+
+            <!-- RESULTS -->
+            <div class="lg:col-span-9">
+                <div id="welcomeState" class="h-96 flex flex-col justify-center items-center bg-white rounded border-2 border-dashed border-slate-300 text-slate-400">
+                    <i class="fa-solid fa-gears text-6xl mb-4 text-slate-200"></i>
+                    <h2 class="text-xl font-bold">Ready to Design</h2>
+                    <p class="text-sm">Enter parameters to generate BOM, Feed, and Ejection specs.</p>
+                </div>
+
+                <div id="resultsArea" class="hidden space-y-6">
+                    
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
+                            <p class="text-xs text-blue-800 font-bold uppercase">Machine</p>
+                            <p class="text-xl font-black text-slate-800" id="resMachine">--</p>
+                            <p class="text-xs text-slate-400"><span id="resTonnage">--</span> Tons</p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
+                            <p class="text-xs text-orange-800 font-bold uppercase">Shrinkage</p>
+                            <p class="text-xl font-black text-slate-800 font-mono" id="resShrinkScale">--</p>
+                            <p class="text-xs text-slate-400"><span id="resShrinkPerc">--</span>%</p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow border-l-4 border-teal-500">
+                            <p class="text-xs text-teal-800 font-bold uppercase">Cycle Time</p>
+                            <p class="text-xl font-black text-slate-800" id="resCycle">--</p>
+                            <p class="text-xs text-slate-400">Seconds (Est)</p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow border-l-4 border-emerald-500">
+                            <p class="text-xs text-emerald-800 font-bold uppercase">Steel Cost</p>
+                            <p class="text-xl font-black text-slate-800" id="resCost">--</p>
+                            <p class="text-xs text-slate-400">BDT (Est)</p>
+                        </div>
+                    </div>
+
+                    <!-- TABS -->
+                    <div class="bg-white rounded shadow border border-slate-200 overflow-hidden">
+                        <div class="flex border-b bg-slate-50">
+                            <button onclick="showTab('bom')" id="tab-bom" class="tab-btn active">BOM (Stack)</button>
+                            <button onclick="showTab('feed')" id="tab-feed" class="tab-btn">Feed & Eject</button>
+                            <button onclick="showTab('hardware')" id="tab-hardware" class="tab-btn">Hardware</button>
+                            <button onclick="showTab('struct')" id="tab-struct" class="tab-btn">Structure</button>
+                        </div>
+
+                        <!-- 1. BOM -->
+                        <div id="content-bom" class="p-6">
+                            <h3 class="font-bold text-slate-700 mb-2">9-Plate Mold Bill of Materials</h3>
+                            <div class="overflow-x-auto">
+                                <table class="bom-table w-full">
+                                    <thead><tr><th>Item</th><th>Material</th><th>Dim (mm)</th><th>Wt (kg)</th></tr></thead>
+                                    <tbody id="bomBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 2. FEED & EJECT -->
+                        <div id="content-feed" class="hidden p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <!-- Feed System -->
+                                <div>
+                                    <h4 class="font-bold text-slate-700 border-b pb-2 mb-3"><i class="fa-solid fa-faucet text-orange-500 mr-2"></i>Feed System</h4>
+                                    <div class="space-y-3 text-sm">
+                                        <div class="flex justify-between border-b border-dashed pb-1">
+                                            <span class="text-slate-600">Sprue Inlet (Small)</span>
+                                            <span class="spec-val text-orange-600" id="resSprueIn">--</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-dashed pb-1">
+                                            <span class="text-slate-600">Sprue Outlet (Large)</span>
+                                            <span class="spec-val text-orange-600" id="resSprueOut">--</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-dashed pb-1">
+                                            <span class="text-slate-600">Runner Diameter</span>
+                                            <span class="spec-val" id="resRunnerDia">--</span>
+                                        </div>
+                                        <div class="bg-orange-50 p-3 rounded mt-2">
+                                            <p class="font-bold text-orange-800 text-xs uppercase mb-1">Gate Spec: <span id="resGateType"></span></p>
+                                            <div class="flex justify-between"><span>Depth (h):</span> <span class="font-mono font-bold" id="resGateDepth">--</span></div>
+                                            <div class="flex justify-between"><span>Width (w):</span> <span class="font-mono font-bold" id="resGateWidth">--</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Ejection System -->
+                                <div>
+                                    <h4 class="font-bold text-slate-700 border-b pb-2 mb-3"><i class="fa-solid fa-eject text-blue-500 mr-2"></i>Ejection System</h4>
+                                    <div class="space-y-3 text-sm">
+                                        <div class="flex justify-between border-b border-dashed pb-1">
+                                            <span class="text-slate-600">Ejector Pin Dia</span>
+                                            <span class="spec-val text-blue-600" id="resPinDia">--</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-dashed pb-1">
+                                            <span class="text-slate-600">Estimated Qty</span>
+                                            <span class="spec-val text-blue-600" id="resPinQty">--</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-dashed pb-1">
+                                            <span class="text-slate-600">Pin Length</span>
+                                            <span class="spec-val" id="resPinLen">--</span>
+                                        </div>
+                                        <div class="bg-blue-50 p-3 rounded mt-2">
+                                            <p class="font-bold text-blue-800 text-xs uppercase mb-1">Included Hardware</p>
+                                            <ul class="list-disc list-inside text-xs text-blue-900">
+                                                <li>4x Return Pins (Dia <span id="resRetPin"></span>)</li>
+                                                <li>1x Sprue Puller Pin (Z-Type)</li>
+                                                <li>Clearance: H7/g6 Fit</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. HARDWARE -->
+                        <div id="content-hardware" class="hidden p-6">
+                            <h4 class="font-bold text-slate-700 mb-3 flex justify-between">
+                                <span><i class="fa-solid fa-screw text-slate-500 mr-2"></i>Bolt Schedule (SHCS 12.9)</span>
+                            </h4>
+                            <div class="overflow-x-auto mb-6">
+                                <table class="bom-table w-full">
+                                    <thead><tr><th>Location</th><th>Spec</th><th>Qty</th><th>Drill (Tap)</th><th>C-Bore</th></tr></thead>
+                                    <tbody id="boltBody"></tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div class="bg-slate-50 p-3 rounded">
+                                    <p class="font-bold mb-1">Guide System</p>
+                                    <p>Pins: <span class="font-mono font-bold" id="resGuide">--</span></p>
+                                    <p>Bushings: <span class="font-mono font-bold" id="resBush">--</span></p>
+                                </div>
+                                <div class="bg-slate-50 p-3 rounded">
+                                    <p class="font-bold mb-1">Locating Ring</p>
+                                    <p>Type: <span class="font-mono font-bold" id="resLocRing">K12 (Standard)</span></p>
+                                    <p>Sprue Bush: <span class="font-mono font-bold" id="resSprueBush">--</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. STRUCTURE -->
+                        <div id="content-struct" class="hidden p-6">
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 class="font-bold text-slate-700 mb-2">Mold Stack Analysis</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex justify-between"><span>Stroke</span> <span class="spec-val" id="resStroke">--</span></li>
+                                        <li class="flex justify-between"><span>Spacer Height</span> <span class="spec-val" id="resSpacerH">--</span></li>
+                                        <li class="flex justify-between border-t pt-2"><span>Total Mold Height</span> <span class="spec-val text-blue-600" id="resTotalH">--</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-700 mb-2">Cooling Config</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex justify-between"><span>Channel Dia</span> <span class="spec-val" id="resCoolDia">--</span></li>
+                                        <li class="flex justify-between"><span>Nipple</span> <span class="spec-val" id="resNipple">--</span></li>
+                                        <li class="flex justify-between"><span>Offset</span> <span class="spec-val" id="resCoolOff">--</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- CONSTANTS ---
+        const MACHINES = [
+            { name: "160T", ton: 160, bar: 450 }, { name: "250T", ton: 250, bar: 580 }, { name: "580T", ton: 580, bar: 900 }
+        ];
+        const MATERIALS = {
+            "PP": { shrink: 1.5, dens: 0.9 }, "ABS": { shrink: 0.5, dens: 1.05 },
+            "PC": { shrink: 0.6, dens: 1.2 }, "PA66": { shrink: 1.2, dens: 1.14 }, "HDPE": { shrink: 2.0, dens: 0.95 }
+        };
+        const BOLT_DATA = {
+            "M8":  { tap: "6.8mm", cb: "15mm" }, "M10": { tap: "8.5mm", cb: "18mm" },
+            "M12": { tap: "10.2mm", cb: "20mm" }, "M16": { tap: "14mm", cb: "26mm" }
+        };
+
+        function showTab(t) {
+            ['bom','feed','hardware','struct'].forEach(x => {
+                document.getElementById('content-'+x).classList.add('hidden');
+                document.getElementById('tab-'+x).classList.remove('active');
+            });
+            document.getElementById('content-'+t).classList.remove('hidden');
+            document.getElementById('tab-'+t).classList.add('active');
+        }
+
+        function calculateAll(e) {
+            e.preventDefault();
+
+            // Inputs
+            const L = parseFloat(document.getElementById('partL').value);
+            const W = parseFloat(document.getElementById('partW').value);
+            const H = parseFloat(document.getElementById('partH').value);
+            const wall = parseFloat(document.getElementById('wallT').value);
+            const cavities = parseInt(document.getElementById('cavities').value);
+            const nozzleDia = parseFloat(document.getElementById('nozzleDia').value);
+            const matName = document.getElementById('material').value;
+            const steelPrice = parseFloat(document.getElementById('steelPrice').value);
+            const runnerType = document.getElementById('runnerType').value;
+            const gateType = document.getElementById('gateType').value;
+
+            const mat = MATERIALS[matName];
+
+            // 1. CORE/CAVITY (718H)
+            const insertL = Math.ceil((L + 60)/10)*10;
+            const insertW = Math.ceil((W + 60)/10)*10;
+            const insertH_A = Math.ceil((H + 40)/10)*10; 
+            const insertH_B = Math.ceil((H + 50)/10)*10;
+
+            // 2. BASE SIZING
+            const cols = Math.ceil(Math.sqrt(cavities)); 
+            const rows = Math.ceil(cavities/cols);
+            const baseL = Math.ceil((insertL * cols * 1.4)/50)*50;
+            const baseW = Math.ceil((insertW * rows * 1.4)/50)*50;
+
+            // 3. PLATE STACK
+            const t_TC = baseL > 400 ? 35 : 25; // Top Clamp
+            const t_A = insertH_A + 20;
+            const t_B = insertH_B + 20;
+            const t_Sup = baseL > 500 ? 55 : 45;
+            const stroke = H + 20;
+            const spacerH = stroke + 20 + 15 + 10; // Stroke + EjPlates + Clear
+            const t_BC = baseL > 400 ? 35 : 25; // Bot Clamp
+            
+            const totalH = t_TC + t_A + t_B + t_Sup + spacerH + t_BC;
+
+            // 4. BOM GENERATION
+            const tbody = document.getElementById('bomBody');
+            tbody.innerHTML = "";
+            let totalWt = 0; let totalCost = 0;
+
+            const addRow = (item, matStr, l, w, h, isHard) => {
+                const wt = (l*w*h*0.00000785).toFixed(2);
+                const rate = isHard ? 850 : steelPrice; // 850 for 718H
+                const cost = Math.ceil(wt * rate);
+                totalWt += parseFloat(wt);
+                totalCost += cost;
+                tbody.innerHTML += `<tr><td>${item}</td><td class="text-xs text-slate-500">${matStr}</td><td class="font-mono text-xs">${l}x${w}x${h}</td><td>${wt}</td></tr>`;
+            };
+
+            addRow(`Core Insert (x${cavities})`, "718H", insertL, insertW, insertH_B, true);
+            addRow(`Cavity Insert (x${cavities})`, "718H", insertL, insertW, insertH_A, true);
+            addRow("Top Clamp Plate", "MS", baseL, baseW, t_TC, false);
+            addRow("A-Plate", "MS", baseL, baseW, t_A, false);
+            addRow("B-Plate", "MS", baseL, baseW, t_B, false);
+            addRow("Support Plate", "MS", baseL, baseW, t_Sup, false);
+            addRow("Spacer Block (L)", "MS", baseL, 60, spacerH, false);
+            addRow("Spacer Block (R)", "MS", baseL, 60, spacerH, false);
+            addRow("Ejector Retainer", "MS", baseL-10, baseW-130, 15, false);
+            addRow("Ejector Base", "MS", baseL-10, baseW-130, 20, false);
+            addRow("Bottom Clamp", "MS", baseL, baseW, t_BC, false);
+
+            // 5. FEED SYSTEM
+            const sprueIn = nozzleDia + 0.5;
+            // Sprue Length approx passes through TopClamp + A-Plate (if 2 plate)
+            const sprueLen = t_TC + t_A - 5; // approx
+            const sprueOut = (sprueIn + (2 * sprueLen * Math.tan(2 * Math.PI / 180))).toFixed(2); // 2 deg draft
+            
+            const runDia = (Math.sqrt(L*W*H*0.001)/3.7 * 2).toFixed(1); // Rough heuristic based on wt
+            const gateD = (0.6 * wall).toFixed(2);
+            const gateW = (1.5 * wall).toFixed(2);
+
+            // 6. EJECTION
+            const pinDia = wall >= 2 ? (wall >= 3 ? 6 : 4) : 2.5;
+            const pinQty = Math.ceil((2*L + 2*W)/50) * cavities;
+            const pinLen = t_B + t_Sup + spacerH + 20; // Needs to reach parting line from ejector plate
+
+            // 7. HARDWARE (BOLTS)
+            const boltBody = document.getElementById('boltBody');
+            boltBody.innerHTML = "";
+            
+            const addBolt = (loc, size, plateT, qty) => {
+                const len = Math.ceil((plateT + (size==="M16"?24:18))/5)*5;
+                const dat = BOLT_DATA[size];
+                boltBody.innerHTML += `<tr><td>${loc}</td><td class="font-mono font-bold">${size}x${len}</td><td>${qty}</td><td class="text-xs text-orange-600 font-mono">${dat.tap}</td><td class="text-xs text-slate-500">${dat.cb}</td></tr>`;
+            };
+
+            const mMain = baseL > 400 ? "M16" : "M12";
+            addBolt("Top Clamp > A", mMain, t_TC, 4);
+            addBolt("Support > B", mMain, t_Sup, 4);
+            addBolt("Inserts", "M10", 30, cavities*4);
+            addBolt("Ejector", "M8", 20, 6);
+
+            // 8. MACHINE & UI
+            const reqTon = Math.ceil(L*W*cavities*35/10000);
+            let mach = "N/A";
+            for(let m of MACHINES) { if(m.ton > reqTon*1.2 && baseW < m.bar-50) { mach = m.name; break; }}
+
+            // UPDATE UI
+            document.getElementById('resMachine').innerText = mach;
+            document.getElementById('resTonnage').innerText = reqTon;
+            document.getElementById('resShrinkScale').innerText = (1 + mat.shrink/100).toFixed(3);
+            document.getElementById('resShrinkPerc').innerText = mat.shrink;
+            document.getElementById('resCost').innerText = totalCost.toLocaleString();
+            document.getElementById('resCycle').innerText = Math.ceil(wall*wall*3 + 10); // heuristic
+
+            // Feed Tab
+            document.getElementById('resSprueIn').innerText = `Ø ${sprueIn} mm`;
+            document.getElementById('resSprueOut').innerText = `Ø ${sprueOut} mm`;
+            document.getElementById('resRunnerDia').innerText = `Ø ${runDia} mm`;
+            document.getElementById('resGateType').innerText = gateType.toUpperCase();
+            document.getElementById('resGateDepth').innerText = gateD + " mm";
+            document.getElementById('resGateWidth').innerText = gateW + " mm";
+
+            // Eject Tab
+            document.getElementById('resPinDia').innerText = `Ø ${pinDia} mm`;
+            document.getElementById('resPinQty').innerText = pinQty;
+            document.getElementById('resPinLen').innerText = `~${pinLen} mm`;
+            document.getElementById('resRetPin').innerText = `${pinDia+2}mm`;
+
+            // Hardware
+            const gDia = baseL>300?25:20;
+            document.getElementById('resGuide').innerText = `Ø${gDia} x ${t_TC+t_A+30}mm`;
+            document.getElementById('resBush').innerText = `Ø${gDia} Shoulder Bush`;
+            document.getElementById('resSprueBush').innerText = `SR-20 Standard (Orifice ${sprueIn})`;
+            
+            // Structure
+            document.getElementById('resStroke').innerText = stroke + " mm";
+            document.getElementById('resSpacerH').innerText = spacerH + " mm";
+            document.getElementById('resTotalH').innerText = totalH + " mm";
+            document.getElementById('resCoolDia').innerText = baseL>400?"12mm":"8mm";
+            document.getElementById('resNipple').innerText = baseL>400?"1/2\" BSP":"1/4\" BSP";
+            document.getElementById('resCoolOff').innerText = (baseL>400?36:24) + " mm";
+
+            document.getElementById('welcomeState').classList.add('hidden');
+            document.getElementById('resultsArea').classList.remove('hidden');
+            showTab('bom');
+        }
+    </script>
+</body>
+</html>
