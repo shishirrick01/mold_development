@@ -2,489 +2,896 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mold Master v9.0 (Smart Catalog)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MoldMaster 3D Ultimate v4.3 (Mobile)</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Three.js for 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <style>
-        body { background-color: #f8fafc; font-family: 'Segoe UI', sans-serif; color: #1e293b; }
-        .input-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 2px; }
-        .tab-btn { padding: 12px 24px; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent; transition: all 0.2s; }
-        .tab-btn:hover { background-color: #f1f5f9; color: #334155; }
-        .tab-btn.active { border-bottom: 3px solid #2563eb; color: #2563eb; background: white; }
-        .spec-val { font-family: 'Roboto Mono', monospace; font-weight: 700; color: #0f172a; }
-        .bom-table th { background: #e2e8f0; text-align: left; padding: 10px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .bom-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; font-size: 0.9rem; }
-        .bom-table tr:hover { background-color: #f8fafc; }
-        optgroup { color: #1e40af; font-weight: bold; background: #eff6ff; }
-        option { color: #334155; background: white; padding: 4px; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        .technical-grid {
+            background-color: #f0f4f8;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .tab-active { border-bottom: 2px solid #2563eb; color: #1e40af; font-weight: 600; background-color: #eff6ff; }
+        .tab-inactive { color: #64748b; border-bottom: 2px solid transparent; }
+        .tab-inactive:hover { color: #334155; border-bottom: 2px solid #cbd5e1; background-color: #f8fafc; }
+        
+        #three-canvas { width: 100%; height: 100%; outline: none; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+        /* Mobile sidebar transition */
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
 
     <!-- Header -->
-    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded"><i class="fa-solid fa-industry text-xl"></i></div>
-                <div>
-                    <h1 class="text-lg font-bold">Mold<span class="text-blue-400">Master</span> v9.0</h1>
-                    <p class="text-[10px] text-slate-400 uppercase">Product Catalog Logic</p>
-                </div>
+    <header class="bg-slate-900 text-white h-16 flex items-center justify-between px-4 shadow-md z-30 shrink-0">
+        <div class="flex items-center gap-3">
+            <!-- Mobile Menu Button -->
+            <button onclick="toggleSidebar()" class="md:hidden p-1 rounded hover:bg-slate-800 text-slate-300">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+            
+            <div class="bg-blue-600 p-1.5 rounded-lg">
+                <i data-lucide="cuboid" class="text-white w-5 h-5"></i>
             </div>
-            <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-xs border border-slate-700 flex items-center gap-2">
-                <i class="fa-solid fa-print"></i> Print Report
+            <div>
+                <h1 class="text-lg md:text-xl font-bold tracking-tight leading-none">MoldMaster <span class="text-blue-400">3D</span></h1>
+                <p class="text-[10px] text-slate-400 font-mono uppercase tracking-wider hidden sm:block">Design • Costing • Analysis</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <div class="text-[10px] text-slate-400 uppercase font-bold hidden sm:block">Total Project Cost</div>
+                <div class="font-mono font-bold text-green-400 text-base md:text-lg" id="header-cost">0.00</div>
+            </div>
+            <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded text-slate-300 transition-colors hidden sm:block">
+                <i data-lucide="printer" class="w-4 h-4"></i>
             </button>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-6 flex-grow">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- Mobile Sidebar Overlay -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden glass-effect"></div>
+
+        <!-- Sidebar Controls -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-slate-200 overflow-y-auto flex flex-col shadow-2xl transform -translate-x-full md:translate-x-0 md:static md:shadow-xl sidebar-transition">
             
-            <!-- INPUTS -->
-            <div class="lg:col-span-3 space-y-4">
-                <form id="moldForm" onsubmit="calculateAll(event)" class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 sticky top-24">
-                    
-                    <h2 class="text-sm font-bold border-b pb-2 mb-3 text-slate-800"><i class="fa-solid fa-list-check text-blue-600 mr-2"></i>Select Product</h2>
-                    
-                    <div class="mb-4">
-                        <label class="input-label mb-1">Catalog Item</label>
-                        <select id="productType" class="w-full text-sm border-2 border-blue-100 rounded p-2 bg-blue-50 focus:border-blue-500 outline-none cursor-pointer">
-                            <option value="">-- Choose Product --</option>
-                            
-                            <optgroup label="Furniture">
-                                <option value="wardrobe">Wardrobes (5D, Double, Single)</option>
-                                <option value="closet">Closets & Cabinets (Amass, Royal)</option>
-                                <option value="chair">Chairs (Arm, Decorator, Royal)</option>
-                                <option value="table">Tables (Dining, Center, Reading)</option>
-                                <option value="stool">Stools (Magic, Step, Net)</option>
-                                <option value="sofa">Sofa Sets (Caino)</option>
-                            </optgroup>
+            <!-- Mobile Close Header -->
+            <div class="md:hidden flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+                <span class="font-bold text-slate-700">Configuration</span>
+                <button onclick="toggleSidebar()" class="p-1 text-slate-500 hover:bg-slate-200 rounded">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
 
-                            <optgroup label="Food & Beverage Storage">
-                                <option value="container">Containers (Fresco, Moon, Thin Wall)</option>
-                                <option value="jar">Air-Tight Jars (Deep Draw)</option>
-                                <option value="lunchbox">Lunch & Tiffin Boxes</option>
-                                <option value="bottle">Water Bottles (Phinix, Prism)</option>
-                                <option value="jug">Jugs (Elegant, Crown)</option>
-                            </optgroup>
-
-                            <optgroup label="Household & Cleaning">
-                                <option value="bucket">Buckets (Super, Mop, Deluxe)</option>
-                                <option value="basket">Baskets (Laundry, Waste, Shopping)</option>
-                                <option value="rack">Racks & Hangers</option>
-                                <option value="dustbin">Paddle Bins & Dustbins</option>
-                            </optgroup>
-
-                            <optgroup label="Tableware & Kitchen">
-                                <option value="dinner_set">Dinner & Tea Sets</option>
-                                <option value="mug">Tumblers & Mugs</option>
-                                <option value="tray">Trays (Rattan, Spice)</option>
-                                <option value="kitchen_tool">Kitchen Tools (Strainers, Juicers)</option>
-                            </optgroup>
-
-                            <optgroup label="Babyware & Toys">
-                                <option value="potty">Baby Potties & Baths</option>
-                                <option value="toy">Toys & Riders</option>
-                            </optgroup>
-
-                            <optgroup label="Industrial">
-                                <option value="pallet">Pallets (Heavy Duty)</option>
-                                <option value="floor_mat">Heavy Floor Mats</option>
-                            </optgroup>
-                        </select>
+            <div class="p-5 space-y-6">
+                
+                <!-- Material Section -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 text-slate-800 font-bold text-sm border-b pb-2">
+                        <i data-lucide="flask-conical" class="w-4 h-4 text-blue-600"></i>
+                        <h2>MATERIAL & COSTING</h2>
                     </div>
-
-                    <h2 class="text-sm font-bold border-b pb-2 mb-3 text-slate-800"><i class="fa-solid fa-ruler-combined text-orange-600 mr-2"></i>Dimensions</h2>
-                    <div class="space-y-3 mb-6">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div><label class="input-label">Length</label><input type="number" id="partL" required class="w-full text-sm border rounded p-1.5 bg-slate-50" placeholder="mm"></div>
-                            <div><label class="input-label">Width</label><input type="number" id="partW" required class="w-full text-sm border rounded p-1.5 bg-slate-50" placeholder="mm"></div>
-                            <div><label class="input-label">Height</label><input type="number" id="partH" required class="w-full text-sm border rounded p-1.5 bg-slate-50" placeholder="mm"></div>
-                            <div><label class="input-label">Wall T</label><input type="number" id="wallT" value="2.0" step="0.1" class="w-full text-sm border rounded p-1.5 bg-slate-50"></div>
-                        </div>
+                    <select id="material-select" onchange="updateSystem()" class="w-full bg-slate-50 border border-slate-300 text-sm rounded p-2">
+                        <option value="ABS">ABS (General Purpose)</option>
+                        <option value="PP">PP (Polypropylene)</option>
+                        <option value="PC">PC (Polycarbonate)</option>
+                        <option value="PA6">PA6 (Nylon 6)</option>
+                        <option value="POM">POM (Acetal)</option>
+                    </select>
+                    
+                    <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="input-label">Material</label>
-                            <select id="material" class="w-full text-sm border rounded p-1.5">
-                                <option value="PP">PP (Polyprop)</option>
-                                <option value="ABS">ABS</option>
-                                <option value="PC">PC (Polycarb)</option>
-                                <option value="PA66">Nylon 66</option>
-                                <option value="HDPE">HDPE</option>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Currency</label>
+                            <select id="currency" onchange="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-xs">
+                                <option value="USD">$ USD</option>
+                                <option value="TK" selected>৳ BDT</option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div><label class="input-label">Cavities</label><input type="number" id="cavities" value="1" class="w-full text-sm border rounded p-1.5"></div>
-                            <div><label class="input-label">Steel Price</label><input type="number" id="steelPrice" value="220" class="w-full text-sm border rounded p-1.5" placeholder="Tk/kg"></div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Steel/kg</label>
+                            <input type="number" id="steel-price" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-xs" value="120">
                         </div>
                     </div>
-
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded shadow-lg uppercase text-sm flex justify-center items-center gap-2 transform active:scale-95 transition">
-                        <i class="fa-solid fa-bolt"></i> Generate Full Design
-                    </button>
-                </form>
-            </div>
-
-            <!-- RESULTS -->
-            <div class="lg:col-span-9">
-                <!-- Welcome State -->
-                <div id="welcomeState" class="h-full flex flex-col justify-center items-center bg-white rounded-lg border-2 border-dashed border-slate-300 text-slate-400 p-12">
-                    <i class="fa-solid fa-list-ul text-6xl mb-4 text-slate-200"></i>
-                    <h2 class="text-xl font-bold text-slate-500">Select Product</h2>
-                    <p class="text-sm mt-2">Choose an item to load its Engineering Logic.</p>
+                     <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Machine Rate</label>
+                            <input type="number" id="machine-rate" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-xs" value="1500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Markup (%)</label>
+                            <input type="number" id="cost-markup" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-xs font-bold text-green-600" value="15" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 mt-2">
+                        <input type="checkbox" id="include-machine" onchange="updateSystem()" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300">
+                        <label for="include-machine" class="text-xs font-bold text-slate-600">Include CNC Machining</label>
+                    </div>
                 </div>
 
-                <div id="resultsArea" class="hidden space-y-6">
+                <!-- Product Geometry -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 text-slate-800 font-bold text-sm border-b pb-2">
+                        <i data-lucide="shapes" class="w-4 h-4 text-blue-600"></i>
+                        <h2>PRODUCT GEOMETRY</h2>
+                    </div>
                     
-                    <!-- KPI Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
-                            <p class="text-xs text-blue-800 font-bold uppercase">Machine</p>
-                            <p class="text-xl font-black text-slate-800" id="resMachine">--</p>
-                            <p class="text-xs text-slate-400"><span id="resTonnage">--</span> Tons</p>
-                        </div>
-                        <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
-                            <p class="text-xs text-orange-800 font-bold uppercase">Cooling Logic</p>
-                            <p class="text-lg font-black text-slate-800 leading-none mt-1" id="resCoolBadge">--</p>
-                        </div>
-                        <div class="bg-white p-4 rounded shadow border-l-4 border-teal-500">
-                            <p class="text-xs text-teal-800 font-bold uppercase">Cycle Time</p>
-                            <p class="text-xl font-black text-slate-800" id="resCycle">--</p>
-                            <p class="text-xs text-slate-400">Seconds (Est)</p>
-                        </div>
-                        <div class="bg-white p-4 rounded shadow border-l-4 border-emerald-500">
-                            <p class="text-xs text-emerald-800 font-bold uppercase">Steel Cost</p>
-                            <p class="text-xl font-black text-slate-800" id="resCost">--</p>
-                            <p class="text-xs text-slate-400">BDT (Est)</p>
+                    <!-- Shape Selector -->
+                    <div>
+                        <div class="flex bg-slate-100 p-1 rounded-md mt-1">
+                            <button onclick="setShape('rect')" id="btn-rect" class="flex-1 py-1 text-xs font-bold rounded shadow-sm bg-white text-blue-600 transition-all">Rectangular</button>
+                            <button onclick="setShape('cyl')" id="btn-cyl" class="flex-1 py-1 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition-all">Circular</button>
                         </div>
                     </div>
 
-                    <!-- TABS -->
-                    <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="flex border-b bg-slate-50">
-                            <button onclick="showTab('bom')" id="tab-bom" class="tab-btn active">BOM</button>
-                            <button onclick="showTab('systems')" id="tab-systems" class="tab-btn">Smart Systems</button>
-                            <button onclick="showTab('hardware')" id="tab-hardware" class="tab-btn">Hardware</button>
-                            <button onclick="showTab('machine')" id="tab-machine" class="tab-btn">Machine</button>
+                    <!-- Rect Inputs -->
+                    <div id="inputs-rect" class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Len (L)</label>
+                            <input type="number" id="part-l" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm font-mono" value="100">
                         </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Wid (W)</label>
+                            <input type="number" id="part-w" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm font-mono" value="50">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Hgt (H)</label>
+                            <input type="number" id="part-h-rect" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm font-mono" value="25">
+                        </div>
+                    </div>
 
-                        <!-- TAB 1: BOM -->
-                        <div id="content-bom" class="p-6">
-                            <h3 class="font-bold text-slate-700 mb-4 flex items-center">
-                                <i class="fa-solid fa-layer-group mr-2 text-slate-400"></i>9-Plate Mold Stack
-                                <span class="ml-auto text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">Base: <strong id="resBaseSize">--</strong></span>
+                    <!-- Cyl Inputs -->
+                    <div id="inputs-cyl" class="grid grid-cols-2 gap-2 hidden">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Diameter (Ø)</label>
+                            <input type="number" id="part-dia" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm font-mono" value="60">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Height (H)</label>
+                            <input type="number" id="part-h-cyl" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm font-mono" value="30">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Wall Thickness</label>
+                        <input type="number" id="wall-t" oninput="updateSystem()" step="0.1" class="w-full border border-slate-300 rounded p-1.5 text-sm font-mono" value="2.0">
+                    </div>
+                </div>
+
+                <!-- Mold Configuration -->
+                <div class="space-y-3 pb-8">
+                    <div class="flex items-center gap-2 text-slate-800 font-bold text-sm border-b pb-2">
+                        <i data-lucide="settings-2" class="w-4 h-4 text-blue-600"></i>
+                        <h2>MOLD CONFIGURATION</h2>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Cavities</label>
+                            <select id="cavities" onchange="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                                <option value="16">16</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Gate Type</label>
+                            <select id="gate-type" onchange="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm">
+                                <optgroup label="Standard">
+                                    <option value="direct">Direct Sprue</option>
+                                    <option value="edge" selected>Edge Gate</option>
+                                    <option value="fan">Fan Gate</option>
+                                </optgroup>
+                                <optgroup label="Circular/Precision">
+                                    <option value="pin">Pin Point (3-Plate)</option>
+                                    <option value="diaphragm">Diaphragm (Center)</option>
+                                </optgroup>
+                                <optgroup label="Automatic">
+                                    <option value="sub">Submarine</option>
+                                    <option value="cashew">Cashew/Banana</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Runner System</label>
+                        <select id="runner-system" onchange="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm font-medium text-slate-700 bg-slate-50">
+                            <option value="cold">Standard Cold Runner</option>
+                            <option value="hot">Hot Runner System</option>
+                            <option value="semi">Semi-Hot Runner</option>
+                            <option value="shutoff">Valve Gate / Shut-off</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                         <label class="text-[10px] font-bold text-slate-400 uppercase">Min Gap (mm)</label>
+                         <input type="number" id="part-gap" oninput="updateSystem()" class="w-full border border-slate-300 rounded p-1.5 text-sm font-mono" value="25">
+                    </div>
+
+                    <button onclick="updateSystem()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded shadow-md transition-all flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Optimize & Calculate
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col bg-slate-50 relative min-w-0">
+            
+            <!-- Mobile Tabs -->
+            <div class="flex border-b border-slate-200 bg-white px-2 overflow-x-auto no-scrollbar">
+                <button onclick="switchTab('viz')" id="tab-viz" class="tab-active flex-shrink-0 px-4 py-3 text-sm flex items-center gap-2 transition-colors">
+                    <i data-lucide="box" class="w-4 h-4"></i> 3D
+                </button>
+                <button onclick="switchTab('eng')" id="tab-eng" class="tab-inactive flex-shrink-0 px-4 py-3 text-sm flex items-center gap-2 transition-colors">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Specs
+                </button>
+                <button onclick="switchTab('bom')" id="tab-bom" class="tab-inactive flex-shrink-0 px-4 py-3 text-sm flex items-center gap-2 transition-colors">
+                    <i data-lucide="list-tree" class="w-4 h-4"></i> BOM
+                </button>
+                <button onclick="switchTab('cost')" id="tab-cost" class="tab-inactive flex-shrink-0 px-4 py-3 text-sm flex items-center gap-2 transition-colors">
+                    <i data-lucide="dollar-sign" class="w-4 h-4"></i> Quote
+                </button>
+            </div>
+
+            <!-- 1. 3D View -->
+            <div id="view-viz" class="flex-1 flex flex-col h-full relative overflow-hidden">
+                <!-- KPI Overlay -->
+                <div class="absolute top-4 left-4 z-10 grid gap-2 pointer-events-none">
+                    <div class="bg-white/90 backdrop-blur p-2 md:p-3 rounded-lg shadow border border-slate-200 w-40 md:w-56">
+                        <div class="text-[10px] text-slate-400 uppercase font-bold">Rec. Machine</div>
+                        <div class="text-base md:text-xl font-bold text-blue-800" id="res-machine">250T</div>
+                        <div class="text-[10px] md:text-xs text-slate-500 mt-1">Force: <span id="res-tonnage">0</span>t</div>
+                    </div>
+                    <div class="bg-white/90 backdrop-blur p-2 md:p-3 rounded-lg shadow border border-slate-200 w-40 md:w-56">
+                        <div class="text-[10px] text-slate-400 uppercase font-bold">Mold Size</div>
+                        <div class="text-sm md:text-lg font-bold text-slate-800" id="res-base-size">0 x 0</div>
+                        <div class="text-[10px] md:text-xs text-slate-500 mt-1" id="res-layout-type">Layout: -</div>
+                        <div class="text-[10px] text-slate-500 truncate" id="res-dims">Dims: -</div>
+                    </div>
+                </div>
+
+                <!-- 3D Canvas -->
+                <div id="canvas-container" class="flex-1 w-full h-full bg-slate-200 relative">
+                    <div id="loading" class="absolute inset-0 flex items-center justify-center bg-slate-100 z-0">
+                        <span class="text-slate-400 animate-pulse">Loading 3D...</span>
+                    </div>
+                </div>
+
+                <!-- 3D Controls Hint -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800/80 text-white px-4 py-1.5 rounded-full text-xs backdrop-blur pointer-events-none flex gap-4 whitespace-nowrap">
+                    <span class="hidden md:inline">Left Click: Rotate</span>
+                    <span class="hidden md:inline">Right Click: Pan</span>
+                    <span class="md:hidden">Touch: Drag to Rotate / Pinch to Zoom</span>
+                </div>
+            </div>
+
+            <!-- 2. Engineering View -->
+             <div id="view-eng" class="hidden flex-1 p-4 md:p-8 overflow-y-auto">
+                <div class="max-w-5xl mx-auto space-y-6">
+                    
+                    <!-- SolidWorks Specs -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-6">
+                        <h3 class="text-blue-900 font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="monitor" class="w-5 h-5"></i> CAD Specification
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div class="bg-white p-3 rounded border border-blue-100">
+                                <div class="text-[10px] text-slate-500 font-bold uppercase">Shrinkage</div>
+                                <div class="text-lg font-mono font-bold text-blue-700" id="cad-shrink">0.0%</div>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-blue-100">
+                                <div class="text-[10px] text-slate-500 font-bold uppercase">Draft Angle</div>
+                                <div class="text-lg font-mono font-bold text-blue-700" id="cad-draft">0°</div>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-blue-100">
+                                <div class="text-[10px] text-slate-500 font-bold uppercase">Rib Root</div>
+                                <div class="text-lg font-mono font-bold text-blue-700" id="cad-rib">0 mm</div>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-blue-100">
+                                <div class="text-[10px] text-slate-500 font-bold uppercase">Steel Safe</div>
+                                <div class="text-lg font-mono font-bold text-blue-700" id="cad-safe">0.00 mm</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Runner & Gate -->
+                        <div class="bg-white rounded-lg shadow border border-slate-200 p-4 md:p-6">
+                            <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                                <i data-lucide="git-merge" class="w-4 h-4 text-blue-500"></i> Gate & Runner
                             </h3>
-                            <div class="overflow-x-auto">
-                                <table class="bom-table w-full">
-                                    <thead><tr><th>Component</th><th>Material</th><th>Dimensions</th><th>Weight (kg)</th><th>Note</th></tr></thead>
-                                    <tbody id="bomBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- TAB 2: SMART SYSTEMS (Logic Driven) -->
-                        <div id="content-systems" class="p-6 hidden">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                
-                                <!-- Cooling Logic -->
-                                <div class="relative">
-                                    <div class="absolute -left-3 top-0 bottom-0 w-1 bg-teal-500 rounded-l"></div>
-                                    <h4 class="font-bold text-teal-800 mb-3 ml-2">Product Cooling Logic</h4>
-                                    <div class="bg-teal-50 p-4 rounded border border-teal-100 space-y-3">
-                                        <div>
-                                            <p class="text-xs uppercase text-teal-600 font-bold">System Type</p>
-                                            <p class="text-lg font-bold text-slate-800" id="resCoolType">--</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs uppercase text-teal-600 font-bold">Engineering Reason</p>
-                                            <p class="text-sm text-slate-600 italic" id="resCoolReason">--</p>
-                                        </div>
-                                        <hr class="border-teal-200">
-                                        <div class="grid grid-cols-2 gap-2 text-sm">
-                                            <div><span class="text-teal-700">Channel Dia:</span> <span class="font-bold" id="resCoolDia">--</span></div>
-                                            <div><span class="text-teal-700">Offset:</span> <span class="font-bold" id="resCoolOff">--</span></div>
-                                        </div>
-                                    </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Type</span>
+                                    <span class="font-bold text-slate-800" id="eng-gate-detail">-</span>
                                 </div>
-
-                                <!-- Feed & Ejection -->
-                                <div class="space-y-6">
-                                    <!-- Feed -->
-                                    <div class="relative">
-                                        <div class="absolute -left-3 top-0 bottom-0 w-1 bg-orange-500 rounded-l"></div>
-                                        <h4 class="font-bold text-orange-800 mb-3 ml-2">Feed System</h4>
-                                        <div class="bg-orange-50 p-4 rounded border border-orange-100">
-                                            <div class="flex justify-between mb-2">
-                                                <span class="font-bold text-slate-700" id="resGateType">--</span>
-                                                <span class="logic-badge bg-orange-200 text-orange-800">Rec. Gate</span>
-                                            </div>
-                                            <p class="text-sm text-slate-600 mb-2" id="resGateReason">--</p>
-                                            <div class="flex gap-4 text-sm text-slate-600">
-                                                <span>Sprue: <strong id="resSprue">--</strong></span>
-                                                <span>Runner: <strong id="resRunner">--</strong></span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Ejection -->
-                                    <div class="relative">
-                                        <div class="absolute -left-3 top-0 bottom-0 w-1 bg-blue-500 rounded-l"></div>
-                                        <h4 class="font-bold text-blue-800 mb-3 ml-2">Ejection System</h4>
-                                        <div class="bg-blue-50 p-4 rounded border border-blue-100">
-                                            <div class="flex justify-between mb-2">
-                                                <span class="font-bold text-slate-700" id="resEjectType">--</span>
-                                                <span class="logic-badge bg-blue-200 text-blue-800">Logic</span>
-                                            </div>
-                                            <p class="text-sm text-slate-600 mb-2">Stroke: <span class="font-bold" id="resStroke">--</span> mm</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <!-- TAB 3: HARDWARE -->
-                        <div id="content-hardware" class="hidden p-6">
-                            <h4 class="font-bold text-slate-700 mb-3 flex justify-between">
-                                <span><i class="fa-solid fa-screw text-slate-500 mr-2"></i>Bolt Schedule (SHCS 12.9)</span>
-                            </h4>
-                            <div class="overflow-x-auto mb-6">
-                                <table class="bom-table w-full">
-                                    <thead><tr><th>Location</th><th>Spec</th><th>Qty</th><th>Tap</th><th>C-Bore</th></tr></thead>
-                                    <tbody id="boltBody"></tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 text-sm">
-                                <div class="bg-blue-50 p-3 rounded">
-                                    <p class="font-bold mb-1">Ejection Hardware</p>
-                                    <p class="flex justify-between"><span>Pin Dia:</span> <strong id="resPinDia">--</strong></p>
-                                    <p class="flex justify-between"><span>Qty:</span> <strong id="resPinQty">--</strong></p>
-                                    <p class="flex justify-between"><span>Return Pins:</span> <strong id="resRetPin">--</strong></p>
-                                </div>
-                                <div class="bg-slate-50 p-3 rounded">
-                                    <p class="font-bold mb-1">Mold Components</p>
-                                    <p class="flex justify-between"><span>Guide Pins:</span> <strong id="resGuide">--</strong></p>
-                                    <p class="flex justify-between"><span>Sprue Bush:</span> <strong>SR-20</strong></p>
-                                    <p class="flex justify-between"><span>Loc Ring:</span> <strong>K12</strong></p>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Gate Ø</span>
+                                    <span class="font-mono font-bold text-slate-800" id="eng-gate-dia">0 mm</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- TAB 4: MACHINE -->
-                        <div id="content-machine" class="hidden p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-white p-4 border rounded shadow-sm">
-                                    <h4 class="font-bold text-slate-700 mb-3">Machine Inventory Check</h4>
-                                    <p class="text-3xl font-black text-slate-800 mb-1" id="resMachineBig">--</p>
-                                    
-                                    <div id="machineAlert" class="hidden mt-4 bg-red-50 text-red-700 p-3 rounded text-xs border border-red-200">
-                                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Critical Warning:</strong> This product requires a machine larger than your 580T inventory (likely >1000T for Pallets/Wardrobes).
-                                    </div>
+                        <!-- Cooling -->
+                        <div class="bg-white rounded-lg shadow border border-slate-200 p-4 md:p-6">
+                            <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                                <i data-lucide="wind" class="w-4 h-4 text-blue-500"></i> Cooling
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Vent Depth</span>
+                                    <span class="font-mono font-bold text-slate-800" id="eng-vent-depth">0.00 mm</span>
                                 </div>
-                                
-                                <div class="bg-white p-4 border rounded shadow-sm">
-                                    <h4 class="font-bold text-slate-700 mb-3">Cost Breakdown</h4>
-                                    <ul class="text-sm space-y-2">
-                                        <li class="flex justify-between"><span>Core/Cavity (718H)</span> <span class="font-mono" id="costInsert">--</span></li>
-                                        <li class="flex justify-between"><span>Mold Base (MS)</span> <span class="font-mono" id="costBase">--</span></li>
-                                        <li class="flex justify-between font-bold pt-2 border-t text-lg"><span>Total</span> <span class="font-mono text-emerald-600" id="resCostBig">--</span></li>
-                                    </ul>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Cooling Ø</span>
+                                    <span class="font-mono font-bold text-slate-800" id="eng-cool-dia">0 mm</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Circuit</span>
+                                    <span class="font-bold text-green-600" id="eng-cool-type">Linear</span>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
+
+            <!-- 3. BOM View -->
+            <div id="view-bom" class="hidden flex-1 p-4 md:p-8 overflow-hidden flex-col">
+                <div class="bg-white rounded-lg shadow border border-slate-200 flex flex-col max-h-full max-w-5xl mx-auto w-full">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-lg">
+                        <h3 class="font-bold text-lg text-slate-800">BOM</h3>
+                        <button onclick="downloadCSV()" class="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded flex items-center gap-2 hover:bg-slate-50">
+                            <i data-lucide="download" class="w-3 h-3"></i> <span class="hidden sm:inline">Export</span>
+                        </button>
+                    </div>
+                    <!-- Horizontal scroll for table on mobile -->
+                    <div class="overflow-auto bom-scroll flex-1 w-full">
+                        <table class="w-full text-left text-sm min-w-[500px]">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase sticky top-0 bg-slate-50">
+                                <tr>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Part Name</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Material</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Qty</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Spec</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bom-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Cost View -->
+            <div id="view-cost" class="hidden flex-1 p-4 md:p-8 overflow-y-auto">
+                <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-900 text-white p-6 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl md:text-2xl font-bold">Quotation</h2>
+                            <p class="text-slate-400 text-xs md:text-sm">Based on <span id="cost-currency">USD</span></p>
+                        </div>
+                        <div class="text-2xl md:text-3xl font-mono font-bold text-green-400" id="cost-total">0.00</div>
+                    </div>
+                    <div class="p-4 md:p-6 overflow-x-auto">
+                        <table class="w-full text-sm min-w-[300px]">
+                            <tbody class="divide-y divide-slate-100" id="cost-body"></tbody>
+                        </table>
+                        <div class="mt-4 p-3 bg-yellow-50 text-yellow-800 text-xs rounded border border-yellow-200">
+                            <strong>Note:</strong> Material costs via density 7.85g/cm³. Machine rate: <span id="machine-rate-display"></span>/hr <span id="machine-status"></span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
 
     <script>
-        // --- CONSTANTS ---
-        const MACHINES = [
-            { name: "160T", ton: 160, bar: 450 }, { name: "250T", ton: 250, bar: 580 }, { name: "580T", ton: 580, bar: 900 }
+        // --- State ---
+        lucide.createIcons();
+        
+        // Extended Material DB
+        const materials = {
+            'ABS': { shrink: 0.5, density: 1.04, factor: 0.3, temp: 230, vent: 0.025, draft: '0.5° - 1°', rib: 0.6, safe: 0.05 },
+            'PP': { shrink: 1.5, density: 0.90, factor: 0.25, temp: 240, vent: 0.015, draft: '1° - 2°', rib: 0.5, safe: 0.03 },
+            'PC': { shrink: 0.6, density: 1.20, factor: 0.5, temp: 290, vent: 0.03, draft: '1° - 2°', rib: 0.7, safe: 0.05 },
+            'PA6': { shrink: 1.2, density: 1.14, factor: 0.4, temp: 260, vent: 0.01, draft: '0.5° - 1°', rib: 0.6, safe: 0.04 },
+            'POM': { shrink: 2.0, density: 1.41, factor: 0.35, temp: 205, vent: 0.015, draft: '0.5° - 1°', rib: 0.5, safe: 0.05 }
+        };
+
+        const machines = [
+            { t: 90, name: '90T' }, { t: 120, name: '120T' }, { t: 160, name: '160T' }, 
+            { t: 250, name: '250T' }, { t: 380, name: '380T' }, { t: 450, name: '450T' },
+            { t: 530, name: '530T' }, { t: 580, name: '580T' }, { t: 800, name: '800T' }
         ];
-        const MATERIALS = {
-            "PP": { shrink: 1.5, dens: 0.9 }, "ABS": { shrink: 0.5, dens: 1.05 },
-            "PC": { shrink: 0.6, dens: 1.2 }, "PA66": { shrink: 1.2, dens: 1.14 }, "HDPE": { shrink: 2.0, dens: 0.95 }
-        };
-        const BOLT_DATA = {
-            "M8":  { tap: "6.8mm", cb: "15mm" }, "M10": { tap: "8.5mm", cb: "18mm" },
-            "M12": { tap: "10.2mm", cb: "20mm" }, "M16": { tap: "14mm", cb: "26mm" }, "M20": { tap: "17.5mm", cb: "30mm" }
-        };
 
-        // --- PRODUCT LOGIC DB (THE BRAIN) ---
-        const PROD_RULES = {
-            // FURNITURE
-            "wardrobe": { cool: "High Flow Serial Grid", reason: "Large surface area requires rapid, uniform heat removal.", gate: "Hot Runner (Valve)", gateReason: "Prevent cold slugs on large panel.", eject: "Pin Grid (High Density)" },
-            "chair":    { cool: "Baffles (Legs) + Contour", reason: "Deep ribs in legs require baffles. Shell needs core cooling.", gate: "Direct Sprue", gateReason: "Center fill for balanced flow.", eject: "Stripper + Pins" },
-            "table":    { cool: "High Flow Grid", reason: "Flat panel warping is critical. Uniform cooling needed.", gate: "Hot Runner", gateReason: "Minimizes flow length ratio.", eject: "Pin Grid" },
-            "stool":    { cool: "Bubblers (Core)", reason: "Deep core requires bubblers to prevent hot spots.", gate: "Direct Sprue", gateReason: "Center fill.", eject: "Stripper Plate" },
-            
-            // STORAGE
-            "container":{ cool: "High Speed Grid (BeCu)", reason: "Thin wall = fast cycle. Beryllium Copper corners recommended.", gate: "Pin-Point", gateReason: "Clean vestige for stacking.", eject: "Air Poppet + Stripper" },
-            "jar":      { cool: "Bubblers (Core) + Helix", reason: "Deep cylindrical shape needs internal bubblers.", gate: "Pin-Point", gateReason: "Center fill.", eject: "Stripper Plate (Rim)" },
-            "bottle":   { cool: "Sleeve Cooling", reason: "Neck cooling is critical for threads.", gate: "Submarine", gateReason: "Shears off automatically.", eject: "Unscrewing / Sleeve" },
-            
-            // HOUSEHOLD
-            "bucket":   { cool: "Bubblers (Core Center)", reason: "Long core must be cooled internally to prevent warping.", gate: "Direct Sprue", gateReason: "Easy fill for deep part.", eject: "Air Poppet + Stripper" },
-            "basket":   { cool: "Grid + Baffles", reason: "Complex mesh needs cooling in ribs.", gate: "Fan Gate", gateReason: "Reduces knit lines in mesh.", eject: "Pin Grid" },
-            "dustbin":  { cool: "Bubblers (Core)", reason: "Deep core cooling.", gate: "Direct Sprue", gateReason: "Robust fill.", eject: "Stripper Plate" },
+        let currentShape = 'rect';
+        let currentBOM = [];
+        let scene, camera, renderer, controls;
+        let moldGroup = new THREE.Group();
 
-            // INDUSTRIAL
-            "pallet":   { cool: "Max Flow (20mm Channels)", reason: "Massive heat load. Needs large turbulent flow.", gate: "Hot Runner (Multi-Tip)", gateReason: "Distribute flow across huge part.", eject: "Strong Return Pins" },
-            
-            // DEFAULT
-            "default":  { cool: "Standard Grid", reason: "General purpose cooling.", gate: "Edge Gate", gateReason: "Simple and reliable.", eject: "Ejector Pins" }
-        };
+        // --- UI Functions ---
 
-        function showTab(t) {
-            ['bom','systems','hardware','machine'].forEach(x => {
-                document.getElementById('content-'+x).classList.add('hidden');
-                document.getElementById('tab-'+x).classList.remove('active');
-            });
-            document.getElementById('content-'+t).classList.remove('hidden');
-            document.getElementById('tab-'+t).classList.add('active');
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
         }
 
-        function calculateAll(e) {
-            e.preventDefault();
-
-            // Inputs
-            const prodKey = document.getElementById('productType').value;
-            const L = parseFloat(document.getElementById('partL').value);
-            const W = parseFloat(document.getElementById('partW').value);
-            const H = parseFloat(document.getElementById('partH').value);
-            const wall = parseFloat(document.getElementById('wallT').value);
-            const cavities = parseInt(document.getElementById('cavities').value);
-            const steelPrice = parseFloat(document.getElementById('steelPrice').value);
-            const matName = document.getElementById('material').value;
-
-            if(!prodKey) { alert("Please select a product"); return; }
-
-            const rule = PROD_RULES[prodKey] || PROD_RULES["default"];
-            const mat = MATERIALS[matName];
-
-            // 1. MOLD SIZING
-            const insertL = Math.ceil((L + 60)/10)*10;
-            const insertW = Math.ceil((W + 60)/10)*10;
-            const insertH_A = Math.ceil((H + 40)/10)*10; 
-            const insertH_B = Math.ceil((H + 50)/10)*10;
-
-            const cols = Math.ceil(Math.sqrt(cavities)); 
-            const rows = Math.ceil(cavities/cols);
-            const baseL = Math.ceil((insertL * cols * 1.4)/50)*50;
-            const baseW = Math.ceil((insertW * rows * 1.4)/50)*50;
-
-            // 2. STACK
-            const t_TC=35, t_Sup=55, t_BC=35;
-            const t_A = insertH_A + 25;
-            const t_B = insertH_B + 25;
-            const stroke = H + 25;
-            const spacerH = stroke + 40;
-
-            // 3. BOM
-            let totalWt = 0; let cost718 = 0; let costMS = 0;
-            const tbody = document.getElementById('bomBody');
-            tbody.innerHTML = "";
-
-            const addRow = (item, mat, l, w, h, isHard) => {
-                const wt = (l*w*h*0.00000785).toFixed(2);
-                const price = isHard ? 850 : steelPrice;
-                const cost = wt * price;
-                if(isHard) cost718 += cost; else costMS += cost;
-                totalWt += parseFloat(wt);
-                tbody.innerHTML += `<tr><td>${item}</td><td class="text-xs text-slate-500">${mat}</td><td class="font-mono text-xs">${l}x${w}x${h}</td><td>${wt}</td><td class="text-xs italic text-blue-600">${isHard?"Hardened":"Standard"}</td></tr>`;
-            };
-
-            addRow("Core Insert", "718H", insertL, insertW, insertH_B, true);
-            addRow("Cavity Insert", "718H", insertL, insertW, insertH_A, true);
-            addRow("Top Clamp Plate", "MS", baseL, baseW, t_TC, false);
-            addRow("A-Plate", "MS", baseL, baseW, t_A, false);
-            addRow("B-Plate", "MS", baseL, baseW, t_B, false);
-            addRow("Support Plate", "MS", baseL, baseW, t_Sup, false);
-            addRow("Spacer Blocks", "MS", baseL, 70, spacerH, false);
-            addRow("Ejector Housing", "MS", baseL-20, baseW-140, 40, false);
-            addRow("Bottom Clamp", "MS", baseL, baseW, t_BC, false);
-
-            // 4. SYSTEMS
-            const coolDia = baseL > 600 ? "12-16mm" : (baseL > 400 ? "10-12mm" : "8mm");
-            const coolOff = baseL > 400 ? "35mm" : "25mm";
+        function setShape(shape) {
+            currentShape = shape;
             
-            const pinDia = wall >= 3 ? "6-8mm" : "4-5mm";
-            const pinQty = Math.ceil((2*L+2*W)/60) * cavities;
+            document.getElementById('btn-rect').className = shape === 'rect' ? 
+                'flex-1 py-1 text-xs font-bold rounded shadow-sm bg-white text-blue-600 transition-all' : 
+                'flex-1 py-1 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition-all';
+                
+            document.getElementById('btn-cyl').className = shape === 'cyl' ? 
+                'flex-1 py-1 text-xs font-bold rounded shadow-sm bg-white text-blue-600 transition-all' : 
+                'flex-1 py-1 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition-all';
 
-            // 5. MACHINE
-            const reqTon = Math.ceil(L*W*cavities*35/10000);
-            let mach = "N/A";
-            let alertShow = false;
-
-            if(reqTon > 650) {
-                mach = "Needs >650T";
-                alertShow = true;
+            if (shape === 'rect') {
+                document.getElementById('inputs-rect').classList.remove('hidden');
+                document.getElementById('inputs-rect').classList.add('grid');
+                document.getElementById('inputs-cyl').classList.add('hidden');
             } else {
-                for(let m of MACHINES) { if(m.ton > reqTon*1.2 && baseW < m.bar-50) { mach = m.name; break; }}
-                if(mach === "N/A") { mach = "Out of Stock"; alertShow = true; }
+                document.getElementById('inputs-rect').classList.add('hidden');
+                document.getElementById('inputs-rect').classList.remove('grid');
+                document.getElementById('inputs-cyl').classList.remove('hidden');
+                document.getElementById('inputs-cyl').classList.add('grid');
+            }
+            updateSystem();
+        }
+
+        function switchTab(tabId) {
+            ['viz', 'eng', 'bom', 'cost'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.replace('tab-active', 'tab-inactive');
+            });
+            const view = document.getElementById(`view-${tabId}`);
+            view.classList.remove('hidden');
+            if(tabId === 'view-bom') view.style.display = 'flex';
+
+            document.getElementById(`tab-${tabId}`).classList.replace('tab-inactive', 'tab-active');
+            
+            if(tabId === 'viz' && renderer) {
+                setTimeout(() => {
+                    const container = document.getElementById('canvas-container');
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }, 100);
+            }
+        }
+
+        function safeSetText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        }
+
+        function updateSystem() {
+            const matKey = document.getElementById('material-select').value;
+            const mat = materials[matKey];
+            const cavities = parseInt(document.getElementById('cavities').value);
+            const runnerType = document.getElementById('runner-system').value;
+            const gateType = document.getElementById('gate-type').value;
+            const wallT = parseFloat(document.getElementById('wall-t').value) || 0;
+            const steelPrice = parseFloat(document.getElementById('steel-price').value) || 0;
+            const machineRate = parseFloat(document.getElementById('machine-rate').value) || 0;
+            const markup = parseFloat(document.getElementById('cost-markup').value) || 0;
+            const currency = document.getElementById('currency').value;
+            const curSym = currency === 'USD' ? '$' : '৳';
+            const includeMachine = document.getElementById('include-machine').checked;
+            
+            let userGap = parseFloat(document.getElementById('part-gap').value) || 25;
+            userGap = Math.max(15, userGap); 
+
+            // Geometry Calc
+            let partVol = 0, partProjArea = 0;
+            let pL = 0, pW = 0, pH = 0;
+            let dimsText = "";
+
+            if (currentShape === 'rect') {
+                pL = parseFloat(document.getElementById('part-l').value) || 0;
+                pW = parseFloat(document.getElementById('part-w').value) || 0;
+                pH = parseFloat(document.getElementById('part-h-rect').value) || 0;
+                const outer = pL * pW * pH;
+                const inner = (pL - 2*wallT) * (pW - 2*wallT) * (pH - wallT);
+                partVol = (outer - inner) / 1000; 
+                partProjArea = (pL * pW) / 100; 
+                dimsText = `Part: ${pL}x${pW}x${pH}mm`;
+            } else {
+                const dia = parseFloat(document.getElementById('part-dia').value) || 0;
+                pH = parseFloat(document.getElementById('part-h-cyl').value) || 0;
+                pL = dia; pW = dia; 
+                const r = dia / 2;
+                const outer = Math.PI * r * r * pH;
+                const inner = Math.PI * (r - wallT) * (r - wallT) * (pH - wallT);
+                partVol = (outer - inner) / 1000;
+                partProjArea = (Math.PI * r * r) / 100;
+                dimsText = `Part: Ø${dia} x H${pH}mm`;
             }
 
-            // 6. HARDWARE
-            const boltBody = document.getElementById('boltBody');
-            boltBody.innerHTML = "";
-            const addBolt = (loc, size, plateT, qty) => {
-                const len = Math.ceil((plateT + (size==="M16"?24:18))/5)*5;
-                const dat = BOLT_DATA[size] || BOLT_DATA["M20"];
-                boltBody.innerHTML += `<tr><td>${loc}</td><td class="font-mono font-bold">${size}x${len}</td><td>${qty}</td><td class="text-xs text-orange-600 font-mono">${dat.tap}</td><td class="text-xs text-slate-500">${dat.cb}</td></tr>`;
-            };
-            const mMain = baseL > 600 ? "M20" : (baseL > 400 ? "M16" : "M12");
-            addBolt("Top Clamp > A", mMain, t_TC, 4);
-            addBolt("Support > B", mMain, t_Sup, 4);
-            addBolt("Inserts", "M10", 30, cavities*4);
-            addBolt("Ejector", "M8", 20, 6);
+            // Tonnage & Machine
+            const clampForce = partProjArea * cavities * mat.factor * 1.2; 
+            const machine = machines.find(m => m.t >= clampForce) || machines[machines.length-1];
 
+            // Layout
+            let cols = 1, rows = 1;
+            if (cavities === 1) { cols = 1; rows = 1; }
+            else if (cavities === 2) {
+                const wA = (pL * 2) + userGap;
+                const hA = pW;
+                const ratioA = Math.abs(1 - (wA/hA));
+                const wB = pL;
+                const hB = (pW * 2) + userGap;
+                const ratioB = Math.abs(1 - (wB/hB));
+                if (ratioA < ratioB) { cols = 2; rows = 1; } else { cols = 1; rows = 2; }
+            }
+            else if (cavities === 4) { cols = 2; rows = 2; }
+            else if (cavities === 8) { cols = 4; rows = 2; }
+            else if (cavities === 16) { cols = 4; rows = 4; }
 
-            // UPDATE UI
-            document.getElementById('resMachine').innerText = mach;
-            document.getElementById('resMachineBig').innerText = mach;
-            document.getElementById('resTonnage').innerText = reqTon;
-            document.getElementById('resCycle').innerText = Math.ceil(wall*wall*3 + 12);
-            document.getElementById('resCost').innerText = Math.ceil(cost718+costMS).toLocaleString();
-            document.getElementById('resCostBig').innerText = Math.ceil(cost718+costMS).toLocaleString() + " Tk";
-            document.getElementById('resCoolBadge').innerText = rule.cool;
+            // Stack Calc
+            const margin = Math.max(60, pH * 0.5 + 40); 
+            const moldW = (pL * cols) + (userGap * (cols-1)) + (margin * 2);
+            const moldH = (pW * rows) + (userGap * (rows-1)) + (margin * 2);
+            
+            const baseW = Math.ceil(moldW / 50) * 50;
+            const baseH = Math.ceil(moldH / 50) * 50;
 
-            // Systems Tab
-            document.getElementById('resCoolType').innerText = rule.cool;
-            document.getElementById('resCoolReason').innerText = rule.reason;
-            document.getElementById('resCoolDia').innerText = coolDia;
-            document.getElementById('resCoolOff').innerText = coolOff;
+            const h_A = Math.ceil((pH + 40) / 10) * 10;
+            const h_B = Math.ceil((pH + 50) / 10) * 10;
+            const stroke = pH + 15;
+            const h_Spacer = Math.ceil((stroke + 20) / 10) * 10;
+            const h_Clamp = 60; 
+            
+            const baseZ = h_A + h_B + h_Spacer + h_Clamp;
 
-            document.getElementById('resGateType').innerText = rule.gate;
-            document.getElementById('resGateReason').innerText = rule.gateReason;
-            document.getElementById('resSprue').innerText = `Ø${(Math.random()*2+4).toFixed(1)}mm`;
-            document.getElementById('resRunner').innerText = `Ø${(Math.random()*3+6).toFixed(1)}mm`;
+            // Cooling
+            const coolDia = Math.max(6, Math.min(14, Math.ceil(wallT * 2.5)));
 
-            document.getElementById('resEjectType').innerText = rule.eject;
-            document.getElementById('resStroke').innerText = stroke;
+            // UI Updates
+            safeSetText('res-tonnage', Math.ceil(clampForce));
+            safeSetText('res-base-size', `${baseW}x${baseH}x${baseZ}`);
+            safeSetText('res-machine', machine.name);
+            safeSetText('res-layout-type', `Layout: ${cols}x${rows}`);
+            safeSetText('res-dims', dimsText);
+            
+            safeSetText('cad-shrink', mat.shrink + "%");
+            safeSetText('cad-draft', mat.draft);
+            safeSetText('cad-rib', (wallT * mat.rib).toFixed(2) + " mm");
+            safeSetText('cad-safe', mat.safe + " mm");
 
-            // Hardware
-            document.getElementById('resPinDia').innerText = pinDia;
-            document.getElementById('resPinQty').innerText = pinQty;
-            document.getElementById('resRetPin').innerText = "4x " + (parseFloat(pinDia)+2) + "mm";
-            document.getElementById('resGuide').innerText = "4x Ø" + (baseL>400?30:25) + "mm";
+            safeSetText('eng-cool-dia', coolDia + " mm");
+            
+            let gateLabel = "";
+            if (gateType === 'direct') gateLabel = "Direct Sprue";
+            else if (gateType === 'edge') gateLabel = "Edge Gate";
+            else if (gateType === 'fan') gateLabel = "Fan Gate";
+            else if (gateType === 'pin') gateLabel = "Pin Point";
+            else if (gateType === 'diaphragm') gateLabel = "Diaphragm";
+            else if (gateType === 'sub') gateLabel = "Submarine";
+            else if (gateType === 'cashew') gateLabel = "Cashew";
+            safeSetText('eng-gate-detail', gateLabel);
 
-            // Machine Alert
-            if(alertShow) document.getElementById('machineAlert').classList.remove('hidden');
-            else document.getElementById('machineAlert').classList.add('hidden');
+            safeSetText('eng-gate-dia', (wallT * 0.8).toFixed(1) + " mm");
+            safeSetText('eng-vent-depth', mat.vent + " mm");
+            safeSetText('cost-currency', currency);
+            safeSetText('cost-rate-display', curSym + steelPrice + "/kg");
+            safeSetText('machine-rate-display', curSym + machineRate);
+            safeSetText('machine-status', includeMachine ? "" : "(Exc.)");
+            safeSetText('eng-cool-type', currentShape === 'cyl' ? "Spiral/Baffle" : "Linear");
 
-            // Cost Details
-            document.getElementById('costInsert').innerText = Math.ceil(cost718).toLocaleString() + " Tk";
-            document.getElementById('costBase').innerText = Math.ceil(costMS).toLocaleString() + " Tk";
-            document.getElementById('resBaseSize').innerText = `${baseL} x ${baseW}`;
-
-            document.getElementById('welcomeState').classList.add('hidden');
-            document.getElementById('resultsArea').classList.remove('hidden');
-            showTab('bom');
+            calculateCostAndBOM(baseW, baseH, baseZ, cavities, runnerType, partVol, matKey, steelPrice, machineRate, curSym, gateType, pL, pW, pH, h_A, h_B, h_Spacer, includeMachine, markup);
+            render3D(baseW, baseH, baseZ, cavities, cols, rows, pL, pW, pH, runnerType, currentShape, coolDia, userGap, gateType);
         }
+
+        function calculateCostAndBOM(w, h, z, cav, runner, vol, mat, pricePerKg, machRate, sym, gate, pL, pW, pH, hA, hB, hSpace, includeMachining, markup) {
+            const steelDensity = 0.00000785; // kg/mm3
+
+            // Components Weights
+            const wClamps = w * h * 60 * steelDensity * 0.9;
+            const cClamps = wClamps * pricePerKg;
+
+            const wAB = w * h * (hA + hB) * steelDensity * 0.75;
+            const cAB = wAB * pricePerKg;
+
+            const wSpacers = w * (h * 0.3) * hSpace * steelDensity; 
+            const cSpacers = wSpacers * pricePerKg;
+
+            const insertL = pL + 40;
+            const insertW = pW + 40;
+            const insertH = pH + 40;
+            const volInserts = insertL * insertW * insertH * cav * 2; 
+            const wInserts = volInserts * steelDensity;
+            const cInserts = wInserts * (pricePerKg * 1.5); 
+
+            // Machining
+            let machineHours = 30 + (cav * 20) + (vol * 0.1); 
+            let machineCost = machineHours * machRate;
+
+            // Standard
+            let standardPartsCost = (sym==='$' ? 500 : 25000); 
+
+            // Runner
+            let runnerCost = 0;
+            if (runner === 'hot') runnerCost = (sym==='$' ? 2000 : 150000) + (cav * (sym==='$' ? 600 : 40000));
+            if (runner === 'shutoff') runnerCost = (sym==='$' ? 3500 : 250000) + (cav * (sym==='$' ? 1000 : 80000));
+
+            // Totals
+            let subtotal = cClamps + cAB + cSpacers + cInserts + standardPartsCost + runnerCost;
+            if (includeMachining) subtotal += machineCost;
+            
+            let marginAmount = subtotal * (markup / 100);
+            let total = subtotal + marginAmount;
+
+            const totalStr = sym + Math.ceil(total).toLocaleString();
+            safeSetText('header-cost', totalStr);
+            safeSetText('cost-total', totalStr);
+            
+            const costBody = document.getElementById('cost-body');
+            if (costBody) {
+                let machineRowClass = includeMachining ? "font-mono" : "font-mono text-slate-400 line-through decoration-slate-400";
+                
+                costBody.innerHTML = `
+                    <tr class="bg-slate-50/50"><td class="py-2 pl-2 font-medium text-slate-600">Clamp Plates</td><td class="text-slate-500 text-xs">${Math.ceil(wClamps)} kg</td><td class="text-right pr-2 font-mono text-xs">${sym}${Math.ceil(cClamps).toLocaleString()}</td></tr>
+                    <tr class="bg-slate-50/50"><td class="py-2 pl-2 font-medium text-slate-600">Cavity & Core Plates</td><td class="text-slate-500 text-xs">${Math.ceil(wAB)} kg</td><td class="text-right pr-2 font-mono text-xs">${sym}${Math.ceil(cAB).toLocaleString()}</td></tr>
+                    <tr class="bg-slate-50/50"><td class="py-2 pl-2 font-medium text-slate-600">Spacer Blocks</td><td class="text-slate-500 text-xs">${Math.ceil(wSpacers)} kg</td><td class="text-right pr-2 font-mono text-xs">${sym}${Math.ceil(cSpacers).toLocaleString()}</td></tr>
+                    <tr class="bg-blue-50/30"><td class="py-2 pl-2 font-medium text-blue-800">Core/Cavity Inserts</td><td class="text-slate-500 text-xs">${Math.ceil(wInserts)} kg</td><td class="text-right pr-2 font-mono text-xs font-bold">${sym}${Math.ceil(cInserts).toLocaleString()}</td></tr>
+                    
+                    <tr><td class="py-2 pl-2 font-medium">Standard Parts</td><td class="text-slate-500 text-xs">Pins/Bushes</td><td class="text-right pr-2 font-mono text-xs">${sym}${Math.ceil(standardPartsCost).toLocaleString()}</td></tr>
+                    <tr><td class="py-2 pl-2 font-medium">Runner System</td><td class="text-slate-500 text-xs uppercase">${runner}</td><td class="text-right pr-2 font-mono text-xs">${sym}${Math.ceil(runnerCost).toLocaleString()}</td></tr>
+                    
+                    <tr class="border-t border-slate-200"><td class="py-2 pl-2 font-medium">CNC Machining</td><td class="text-slate-500 text-xs">${Math.ceil(machineHours)} Hrs</td><td class="text-right pr-2 text-xs ${machineRowClass}">${sym}${Math.ceil(machineCost).toLocaleString()}</td></tr>
+                    
+                    <tr class="bg-green-50/50 border-t border-green-100"><td class="py-2 pl-2 font-bold text-green-800">Margin / Profit</td><td class="text-green-600 text-xs">${markup}%</td><td class="text-right pr-2 font-mono text-xs font-bold text-green-700">+${sym}${Math.ceil(marginAmount).toLocaleString()}</td></tr>
+                `;
+            }
+
+            // BOM
+            const guidePinLen = Math.ceil(z - 20); 
+            const bushLen = Math.ceil(hA - 10);
+            const ejectorLen = Math.ceil(hSpace + hB + 20); 
+            const returnPinLen = Math.ceil(hSpace + hB + 10);
+
+            currentBOM = [
+                { name: 'Mold Base', mat: 'P20/S50C', qty: 1, spec: `${w}x${h}x${z}` },
+                { name: 'Cavity Plate (A)', mat: 'P20', qty: 1, spec: `${w}x${h}x${hA}mm` },
+                { name: 'Core Plate (B)', mat: 'P20', qty: 1, spec: `${w}x${h}x${hB}mm` },
+                { name: 'Spacer Blocks', mat: 'S50C', qty: 2, spec: `H=${hSpace}mm` },
+                { name: 'Cavity Insert', mat: '718H', qty: cav, spec: `${insertL.toFixed(0)}x${insertW.toFixed(0)}x${insertH.toFixed(0)}` },
+                { name: 'Core Insert', mat: '718H', qty: cav, spec: `${insertL.toFixed(0)}x${insertW.toFixed(0)}x${insertH.toFixed(0)}` },
+                { name: 'Sprue Bushing', mat: 'SKD61', qty: 1, spec: `SR16 L${hA}` },
+                { name: 'Locating Ring', mat: 'S50C', qty: 1, spec: 'Ø100' },
+                { name: 'Guide Pillars', mat: 'SUJ2', qty: 4, spec: `Ø${Math.min(30, w/10).toFixed(0)}x${guidePinLen}` },
+                { name: 'Guide Bushings', mat: 'Bronze', qty: 4, spec: `Ø${Math.min(30, w/10).toFixed(0)}x${bushLen}` },
+                { name: 'Return Pins', mat: 'SUJ2', qty: 4, spec: `Ø${Math.max(10, w/30).toFixed(0)}x${returnPinLen}` },
+                { name: 'Ejector Pins', mat: 'SKD61', qty: cav*4, spec: `Ø4-8x${ejectorLen}` }
+            ];
+            
+            if(runner === 'hot' || runner === 'shutoff') {
+                currentBOM.push({ name: 'Hot Manifold', mat: 'Assy', qty: 1, spec: `${cav}-Drop` });
+            }
+
+            const bomBody = document.getElementById('bom-body');
+            if (bomBody) {
+                bomBody.innerHTML = currentBOM.map(i => `
+                    <tr class="hover:bg-slate-50"><td class="px-4 md:px-6 py-3 font-medium text-xs md:text-sm">${i.name}</td><td class="px-4 md:px-6 py-3 text-slate-500 text-xs">${i.mat}</td><td class="px-4 md:px-6 py-3 font-bold text-xs md:text-sm">${i.qty}</td><td class="px-4 md:px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${i.spec}</td></tr>
+                `).join('');
+            }
+        }
+
+        // --- 3D Visualization ---
+
+        function initThree() {
+            const container = document.getElementById('canvas-container');
+            document.getElementById('loading').style.display = 'none';
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xe2e8f0);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 5000);
+            camera.position.set(400, 400, 400);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(200, 300, 200);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            scene.add(moldGroup);
+            scene.add(new THREE.GridHelper(1000, 20, 0xcbd5e1, 0xe2e8f0));
+
+            animate();
+            updateSystem();
+        }
+
+        function render3D(baseW, baseH, baseZ, cavities, cols, rows, pL, pW, pH, runner, shape, coolDia, gap, gate) {
+            while(moldGroup.children.length > 0){ 
+                let obj = moldGroup.children[0];
+                if(obj.geometry) obj.geometry.dispose();
+                if(obj.material) obj.material.dispose();
+                moldGroup.remove(obj); 
+            }
+
+            const matSteel = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0.2, transmission: 0.7, opacity: 0.3, transparent: true });
+            const matProduct = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.3 });
+            const matCooling = new THREE.MeshStandardMaterial({ color: 0x06b6d4 });
+            const matCoolingHot = new THREE.MeshStandardMaterial({ color: 0xea580c }); 
+            const matGate = new THREE.MeshStandardMaterial({ color: 0x64748b });
+
+            // Mold Plates
+            const plateA = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseH, baseZ/2.2), matSteel);
+            plateA.position.y = baseZ/4;
+            moldGroup.add(plateA);
+            
+            const plateB = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseH, baseZ/2.2), matSteel);
+            plateB.position.y = -baseZ/4;
+            moldGroup.add(plateB);
+
+            // Calculate Start positions
+            const totalContentW = (cols * pL) + ((cols-1) * gap);
+            const totalContentH = (rows * pW) + ((rows-1) * gap);
+            const startX = -totalContentW / 2 + pL / 2;
+            const startZ = -totalContentH / 2 + pW / 2;
+
+            for(let r=0; r<rows; r++) {
+                for(let c=0; c<cols; c++) {
+                    const x = startX + (c * (pL + gap));
+                    const z = startZ + (r * (pW + gap));
+                    
+                    // Product
+                    let mesh;
+                    if(shape === 'rect') {
+                        mesh = new THREE.Mesh(new THREE.BoxGeometry(pL, pH, pW), matProduct);
+                    } else {
+                        mesh = new THREE.Mesh(new THREE.CylinderGeometry(pL/2, pL/2, pH, 32), matProduct);
+                    }
+                    mesh.position.set(x, 0, z);
+                    moldGroup.add(mesh);
+
+                    // --- Gate Visualization ---
+                    if(gate === 'direct') {
+                        const g = new THREE.Mesh(new THREE.ConeGeometry(5, 10, 16), matGate);
+                        g.position.set(x, pH/2 + 5, z);
+                        moldGroup.add(g);
+                    } else if (gate === 'edge') {
+                        const g = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 4), matGate);
+                        const offset = pL/2 + 5;
+                        g.position.set(x - offset, 0, z); 
+                        moldGroup.add(g);
+                    } else if (gate === 'fan') {
+                        const g = new THREE.Mesh(new THREE.BoxGeometry(15, 2, 8), matGate);
+                        const offset = pL/2 + 7.5;
+                        g.position.set(x - offset, 0, z); 
+                        moldGroup.add(g);
+                    } else if (gate === 'pin') {
+                        const g = new THREE.Mesh(new THREE.ConeGeometry(1, 5, 8), matGate);
+                        g.position.set(x, pH/2 + 2.5, z);
+                        g.rotation.x = Math.PI; 
+                        moldGroup.add(g);
+                    } else if (gate === 'diaphragm') {
+                        const g = new THREE.Mesh(new THREE.CylinderGeometry(pL/3, pL/3, 2, 32), matGate);
+                        g.position.set(x, pH/2 + 1, z);
+                        moldGroup.add(g);
+                    } else if (gate === 'sub' || gate === 'cashew') {
+                        const g = new THREE.Mesh(new THREE.TorusGeometry(8, 2, 8, 20, Math.PI/2), matGate);
+                        g.position.set(x - pL/2, -pH/2, z);
+                        g.rotation.z = -Math.PI/4;
+                        moldGroup.add(g);
+                    }
+
+                    // Circular Cooling
+                    if(shape === 'cyl') {
+                        const points = [];
+                        const spiralRadius = pL/2 + 15;
+                        const coolY_Core = -pH/2 - 15; 
+                        for(let i=0; i<40; i++) {
+                            const angle = i * 0.5;
+                            points.push(new THREE.Vector3(Math.cos(angle)*spiralRadius + x, coolY_Core, Math.sin(angle)*spiralRadius + z));
+                        }
+                        const tubeGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 40, coolDia/2, 8, false);
+                        moldGroup.add(new THREE.Mesh(tubeGeo, matCooling));
+
+                        const pointsTop = [];
+                        const coolY_Cav = pH/2 + 25; 
+                        for(let i=0; i<40; i++) {
+                            const angle = i * 0.5;
+                            pointsTop.push(new THREE.Vector3(Math.cos(angle)*spiralRadius + x, coolY_Cav, Math.sin(angle)*spiralRadius + z));
+                        }
+                        const tubeGeoTop = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pointsTop), 40, coolDia/2, 8, false);
+                        moldGroup.add(new THREE.Mesh(tubeGeoTop, matCoolingHot));
+                    }
+                }
+            }
+
+            // Grid Cooling
+            if(shape === 'rect') {
+                const numCool = Math.floor(baseH / 60);
+                const coolY_Core = -pH/2 - 20;
+                for(let i=1; i<numCool; i++) {
+                    const zPos = -baseH/2 + (i * 60);
+                    const line = new THREE.Mesh(new THREE.CylinderGeometry(coolDia/2, coolDia/2, baseW, 16), matCooling);
+                    line.rotation.z = Math.PI/2;
+                    line.position.set(0, coolY_Core, zPos);
+                    moldGroup.add(line);
+                }
+                const coolY_Cav = pH/2 + 30; 
+                for(let i=1; i<numCool; i++) {
+                    const zPos = -baseH/2 + (i * 60) + 10; 
+                    const line = new THREE.Mesh(new THREE.CylinderGeometry(coolDia/2, coolDia/2, baseW, 16), matCoolingHot);
+                    line.rotation.z = Math.PI/2;
+                    line.position.set(0, coolY_Cav, zPos);
+                    moldGroup.add(line);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(controls) controls.update();
+            if(renderer) renderer.render(scene, camera);
+        }
+
+        function downloadCSV() {
+            let csv = "Component,Material,Qty,Spec\n";
+            currentBOM.forEach(r => csv += `${r.name},${r.mat},${r.qty},${r.spec}\n`);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'Mold_BOM.csv'; a.click();
+        }
+
+        window.onload = function() {
+            initThree();
+            updateSystem();
+            window.addEventListener('resize', () => {
+                const container = document.getElementById('canvas-container');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        };
     </script>
 </body>
 </html>
